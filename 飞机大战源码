@@ -1,0 +1,340 @@
+#include<stdio.h>
+#include<windows.h>
+#include<conio.h>
+
+int height = 22;
+int width = 70;
+
+void gotoxy(int x, int y)                                   //光标定位函数定义
+{
+	COORD p;
+	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	p.X = x; p.Y = y;
+	SetConsoleCursorPosition(handle, p);
+}
+
+void drawface()
+{
+	int i = 0, j = 0;
+	for (j = 0; j < height; j += height - 1)                    //画上下边界
+	{
+		gotoxy(0, j);
+		for (i = 0; i < width; i++)
+		{
+			printf("-");
+		}
+		printf("\n");
+	}
+	for (j = 0; j <width; j += width - 1)                 //画左右边界
+	{
+		for (i = 0; i < height - 2; i++)
+		{
+			gotoxy(j, i + 1);
+			printf("|\n");
+		}
+	}
+}
+
+
+struct Plane                              //定义飞机坐标信息和高度与宽度
+{
+	int x;
+	int y;
+	int width;
+	int height;
+};
+
+struct Bullet                           //定义子弹的结构体
+{
+	int x;
+	int y;
+	char type;                         //标示子弹的符号
+	int flag;                          //标示子弹是否出界
+};
+
+struct Monster                           //定义怪物的结构体
+{
+	int x;
+	int y;
+	char type;                         //标示的符怪物号
+	int flag;                          //标示怪物是否出界
+};
+
+void drawPlane(struct Plane p)                  //绘制飞机
+{
+	gotoxy(p.x, p.y);
+	printf(" |\n");
+	gotoxy(p.x, p.y + 1);
+	printf("/|\\\n");
+}
+
+	void clearPlane(struct Plane p)                //清除飞机
+	{
+		gotoxy(p.x, p.y);
+		printf("   \n");
+		gotoxy(p.x, p.y + 1);
+		printf("   \n");
+     }
+
+
+
+	void goleft(struct Plane * p)                  //到了左边界就不能移动了
+	{
+		if (p->x < 2)
+			return;
+		p->x--;
+	}
+
+	void goright(struct Plane *p)                 //到了右边界就不能移动了
+	{
+		if (p->x + p->width >width - 2)
+			return;
+		p->x++;
+	}
+
+	void goup(struct Plane *p)                    //到了上边界就不能移动了
+	{
+		if (p->y < 2)
+			return;
+		p->y--;
+	}
+
+	void godown(struct Plane *p)                  //到了下边界就不能移动了
+	{
+		if (p->y + p->height> height - 2)
+			return;
+		p->y++;
+	}
+
+	void control(struct Plane *p)
+	{
+		int res = kbhit();
+		if (res>0)                             //表示检测到敲击键盘了
+		{
+			char ch = getch();
+			clearPlane(*p);                     //清除旧位置
+			switch (ch)
+			{
+			case 'a':
+				goleft(p);
+				break;
+			case 'd':
+				goright(p);
+				break;
+			case 'w':
+				goup(p);
+				break;
+			case 's':
+				godown(p);
+				break;
+			default:
+				break;
+			}
+			drawPlane(*p);        //画出新位置
+		}
+
+	}
+	
+	void initAllBullet(struct Bullet arr[], int num)                                       //初始化全部子弹
+	{
+		int i = 0;
+		for (i = 0; i < num; i++)
+		{
+			arr[i].flag = 1;                                                              //标志位flag为一1表示子弹在屏幕外
+		}
+	}
+
+	void drawAllBullet(struct Bullet arr[], int num)
+	{
+		int i = 0;
+		for (i = 0; i < num; i++)
+		{
+			if (arr[i].flag == 1)
+			{
+				continue;
+			}
+			gotoxy(arr[i].x, arr[i].y);
+			printf("%c\n", arr[i].type);
+		}
+	}
+
+	void updateAllBullet(struct Bullet arr[], int num)          //跟新子弹情况
+	{
+		int i = 0;
+		for (i = 0; i < num; i++)
+		{
+				if (arr[i].flag == 1)
+				{
+					continue;
+				}
+				gotoxy(arr[i].x, arr[i].y);
+				printf(" \n");                                         //这里有空格，清除老位置
+				arr[i].y--;
+				if (arr[i].y < 2)
+				{
+					arr[i].flag = 1;
+				}                     //判断是否出界
+			}
+		}
+
+		
+		void produceBullet(struct Bullet arr[], int num, struct Plane p)               //子弹位置与飞机相关，所以需要传入飞机参数
+		{
+			int i = 0;
+			for (i = 0; i < num; i++)
+			{
+				if (arr[i].flag == 1)
+				{
+					arr[i].y = p.y - 1;                           //子弹在飞机上面
+					arr[i].x = p.x + 1;                            //子弹在飞机正中央
+					arr[i].type = '*';
+					arr[i].flag = 0;
+					return;
+				}
+			}
+		}
+		
+		void initAllMonster(struct Monster arr[], int num)
+		{
+			int i = 0;
+			for (i = 0; i < num; i++)
+			{
+				arr[i].flag = 1;                                                              //标志位flag为一1表示怪物在屏幕外
+			}
+		}
+
+		void drawAllMonster(struct Monster arr[], int num)                         //绘制怪物
+		{
+			int i = 0;
+			for (i = 0; i < num; i++)
+			{
+				if (arr[i].flag == 1)
+				{
+					continue;
+				}
+				gotoxy(arr[i].x, arr[i].y);
+				printf("%c\n", arr[i].type);
+			}
+		}
+
+		void updateAllMonster(struct Monster arr[], int num)          //跟新怪物情况
+		{
+			int i = 0;
+			for (i = 0; i < num; i++)
+			{
+				if (arr[i].flag == 1)
+				{
+					continue;
+				}
+				gotoxy(arr[i].x, arr[i].y);
+				printf(" \n");                                         //这里有空格，清除老位置
+				arr[i].y++;                                            //怪物向下运动
+				if (arr[i].y >height-2)
+				{
+					arr[i].flag = 1;
+				}                     //判断是否出界
+			}
+		}
+
+		void produceMonster(struct Monster arr[], int num)
+		{
+			int i = 0;
+			for (i = 0; i < num; i++)
+			{
+				if (arr[i].flag == 1)
+				{
+					arr[i].y = 1;                           //怪物最初都是从最上面出来的
+					arr[i].x = rand()%(width-4)+2;                            //随机产生
+					arr[i].type = '@';
+					arr[i].flag = 0;
+					return;
+				}
+			}
+		}
+		
+		void checkCollision(struct Bullet bArr[], int bNum, struct Monster mArr[], int mNum)
+		{
+			int i = 0, j = 0;
+			int Count = 0;
+			gotoxy(1, 24);
+			printf("分数：");
+			for (i = 0; i < bNum; i++)
+			{
+				if (bArr[i].flag == 1)
+				{
+					continue;                                                                             //已经出界的忽略
+				}
+				for (j = 0; j < mNum; j++)
+				{
+					{ if (mArr[i].flag == 1)
+						continue;                                                                          //已经出界的忽略
+					}
+					if ((bArr[i].x == mArr[j].x && bArr[i].y == mArr[j].y)||(bArr[i].x == mArr[j].x && bArr[i].y < mArr[j].y))  //子弹怪物碰撞检测
+					{
+						bArr[i].flag == 1;
+						mArr[i].flag == 1;
+						Count++;
+						gotoxy(6, 24);
+						printf("%d", Count);
+					}
+				}
+			}
+		}
+
+		void checkGameover(struct Monster arr[], int num, struct Plane p)
+		{
+			int i = 0;
+			for (i = 0; i < num; i++)
+			{
+				if (arr[i].flag == 1)
+				{
+					continue;                                                                             //已经出界的忽略
+				}
+				if ((arr[i].x >= p.x && arr[i].x < p.x + p.width) && (arr[i].y >= p.y && arr[i].y < p.y + p.height)) //检测飞机是否碰上怪物
+				{
+					gotoxy(30, 10);
+					printf("GAME OVER!\n");
+					exit(0);
+				}	
+			}
+		}
+
+		int main()
+		{
+
+			int count = 0;
+			drawface();                                                         //画游戏界面
+			struct Plane plane = { width / 2 - 1, height - 3, 3, 2 };           //定义飞机结构体变量	
+			drawPlane(plane);                                                   //绘制飞机
+			
+			struct Bullet array1[25];                                           //定义子弹结构体变量
+			initAllBullet(array1, 25);                                          //初始化子弹
+			struct Monster array2[70];                                          //定义怪物结构体变量
+			initAllMonster(array2,70);                                          //初始化怪物
+
+			while (1)
+			{
+				control(&plane);                                                //控制飞机移动
+				
+				if (count % 3 == 0)                                             //每三个循坏打出一发子弹
+				{
+					produceBullet(array1, 25, plane);
+				}
+				
+				if (count % 6 == 0)                                             //每六个循环随机产生一个怪物
+				{
+					produceMonster(array2,70);        
+				}
+				drawAllBullet(array1, 25);                                     //绘制子弹路径
+				drawAllMonster(array2,70);                                     //绘制怪物路径
+				Sleep(200);
+				updateAllBullet(array1, 25);                                   //跟新子弹路径
+				updateAllMonster(array2, 70);                                  //跟新怪物路径
+				
+				checkCollision(array1, 25, array2, 70);                         //检测子弹怪物碰撞
+				checkGameover(array2, 70, plane);                               //检测飞机怪物碰撞
+				count++;
+				
+			}
+			return 0;
+		}
